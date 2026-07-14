@@ -8,11 +8,12 @@ token:
   expiration: 900
 
 users:
-  # Password is specified as a BCrypt hash. Use `htpasswd -nB USERNAME` to generate.
+  # Passwords are specified as BCrypt hashes. Use `htpasswd -nB USERNAME` to generate.
+  # Supply hashes via environment variables; do NOT hardcode them here.
   "admin":
-    password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # badmin
+    password: "${ADMIN_PASSWORD_BCRYPT_HASH}"
   "test":
-    password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # 123
+    password: "${TEST_PASSWORD_BCRYPT_HASH}"
 
 acl:
   - match: {account: "admin"}
