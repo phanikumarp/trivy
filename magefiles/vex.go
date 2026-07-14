@@ -356,12 +356,26 @@ func combineDocs(notAffected map[UniqueKey][]vex.Statement, affected map[UniqueK
 	return lo.Values(statements)
 }
 
+// allowedCommands is the set of executables permitted to be run by runCommandWithTimeout.
+var allowedCommands = map[string]struct{}{
+	"git": {},
+}
+
 // runCommandWithTimeout executes a command with a specified timeout
 func runCommandWithTimeout(ctx context.Context, timeout time.Duration, name string, args ...string) ([]byte, error) {
+	if _, ok := allowedCommands[name]; !ok {
+		return nil, fmt.Errorf("command %q is not permitted", name)
+	}
+
+	resolvedPath, err := exec.LookPath(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve command %q: %w", name, err)
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, resolvedPath, args...)
 	log.Info("Executing command", log.String("cmd", cmd.String()))
 
 	output, err := cmd.CombinedOutput()
