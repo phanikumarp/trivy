@@ -66,7 +66,16 @@ func (p *Plugin) Cmd(ctx context.Context, opts Options) (*exec.Cmd, error) {
 		return nil, xerrors.Errorf("platform selection error: %w", err)
 	}
 
-	execFile := filepath.Join(p.Dir(), platform.Bin)
+	pluginDir := filepath.Clean(p.Dir())
+	execFile := filepath.Join(pluginDir, platform.Bin)
+
+	// Guard against path traversal: ensure the resolved binary path stays
+	// within the plugin's own directory. A tampered manifest could otherwise
+	// supply a Bin value such as "../../malicious" to escape the plugin dir.
+	rel, err := filepath.Rel(pluginDir, execFile)
+	if err != nil || len(rel) >= 2 && rel[:2] == ".." {
+		return nil, xerrors.Errorf("plugin binary path %q is outside the plugin directory", execFile)
+	}
 
 	cmd := exec.CommandContext(ctx, execFile, opts.Args...)
 	cmd.Stdin = os.Stdin

@@ -8,12 +8,12 @@ token:
   expiration: 900
 
 users:
-  # Passwords are specified as BCrypt hashes. Use `htpasswd -nB USERNAME` to generate.
-  # Supply hashes via environment variables; do NOT hardcode them here.
+  # Password is specified as a BCrypt hash. Use `htpasswd -nB USERNAME` to generate.
+  # Set the password hashes via environment variables; do NOT hardcode them here.
   "admin":
-    password: "${ADMIN_PASSWORD_BCRYPT_HASH}"
+    password: "${ADMIN_BCRYPT_PASSWORD}"
   "test":
-    password: "${TEST_PASSWORD_BCRYPT_HASH}"
+    password: "${TEST_BCRYPT_PASSWORD}"
 
 acl:
   - match: {account: "admin"}
