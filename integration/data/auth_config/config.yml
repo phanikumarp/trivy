@@ -9,10 +9,11 @@ token:
 
 users:
   # Password is specified as a BCrypt hash. Use `htpasswd -nB USERNAME` to generate.
+  # Set the password hashes via environment variables; do NOT hardcode them here.
   "admin":
-    password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # badmin
+    password: "${ADMIN_BCRYPT_PASSWORD}"
   "test":
-    password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # 123
+    password: "${TEST_BCRYPT_PASSWORD}"
 
 acl:
   - match: {account: "admin"}
