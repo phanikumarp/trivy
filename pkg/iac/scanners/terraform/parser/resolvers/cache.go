@@ -2,7 +2,7 @@ package resolvers
 
 import (
 	"context"
-	"crypto/md5" // #nosec
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"io/fs"
@@ -70,6 +70,6 @@ func (r *cacheResolver) Resolve(_ context.Context, _ fs.FS, opt Options) (filesy
 }
 
 func cacheKey(source, version string) string {
-	hash := md5.Sum([]byte(source + ":" + version)) // #nosec
+	hash := sha256.Sum256([]byte(source + ":" + version))
 	return hex.EncodeToString(hash[:])
 }
