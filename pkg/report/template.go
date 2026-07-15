@@ -9,7 +9,7 @@ import (
 	"maps"
 	"os"
 	"strings"
-	"text/template"
+	"html/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"golang.org/x/xerrors"
