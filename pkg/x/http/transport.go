@@ -97,7 +97,7 @@ func RoundTripper(ctx context.Context, opts ...TransportOption) http.RoundTrippe
 func WithInsecure(insecure bool) TransportOption {
 	return func(tr *http.Transport) {
 		if tr.TLSClientConfig == nil {
-			tr.TLSClientConfig = &tls.Config{}
+			tr.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS13}
 		}
 		tr.TLSClientConfig.InsecureSkipVerify = insecure
 	}
@@ -123,6 +123,7 @@ func NewTransport(opts Options) Transport {
 	// Configure TLS only when needed.
 	if opts.CACerts != nil || opts.Insecure {
 		tr.TLSClientConfig = &tls.Config{
+			MinVersion:         tls.VersionTLS13,
 			InsecureSkipVerify: opts.Insecure,
 			RootCAs:            opts.CACerts,
 		}
