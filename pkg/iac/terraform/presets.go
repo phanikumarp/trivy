@@ -1,8 +1,10 @@
 package terraform
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand/v2"
+	"math"
+	"math/big"
 	"strings"
 
 	"github.com/google/uuid"
@@ -38,8 +40,9 @@ func createPresetValues(b *Block) map[string]cty.Value {
 	case "aws_region":
 		presets["name"] = cty.StringVal("current-region")
 	case "random_integer":
-		//nolint:gosec
-		presets["result"] = cty.NumberIntVal(rand.Int64())
+		if n, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64)); err == nil {
+			presets["result"] = cty.NumberIntVal(n.Int64())
+		}
 	}
 
 	if attrs, exists := resourceRandomAttributes[b.TypeLabel()]; exists {
