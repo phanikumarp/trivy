@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -356,20 +357,35 @@ func combineDocs(notAffected map[UniqueKey][]vex.Statement, affected map[UniqueK
 	return lo.Values(statements)
 }
 
-// allowedCommands is the set of executables permitted to be run by runCommandWithTimeout.
-var allowedCommands = map[string]struct{}{
-	"git": {},
+// allowedCommandPaths is the set of absolute executable paths permitted to be
+// run by runCommandWithTimeout. Using absolute paths avoids relying on a
+// potentially attacker-controlled PATH environment variable.
+var allowedCommandPaths = map[string]struct{}{
+	"/usr/bin/git": {},
+	"/usr/local/bin/git": {},
 }
+
+// safeArgPattern restricts each argument to characters that have no special
+// meaning to shells or common command parsers, preventing argument-injection.
+var safeArgPattern = regexp.MustCompile(`^[a-zA-Z0-9@._/:\-]+$`)
 
 // runCommandWithTimeout executes a command with a specified timeout
 func runCommandWithTimeout(ctx context.Context, timeout time.Duration, name string, args ...string) ([]byte, error) {
-	if _, ok := allowedCommands[name]; !ok {
-		return nil, fmt.Errorf("command %q is not permitted", name)
-	}
-
 	resolvedPath, err := exec.LookPath(name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve command %q: %w", name, err)
+	}
+
+	// Verify the resolved absolute path is in the allowlist.
+	if _, ok := allowedCommandPaths[resolvedPath]; !ok {
+		return nil, fmt.Errorf("command path %q is not permitted", resolvedPath)
+	}
+
+	// Validate every argument to prevent argument-injection attacks.
+	for _, arg := range args {
+		if !safeArgPattern.MatchString(arg) {
+			return nil, fmt.Errorf("argument %q contains disallowed characters", arg)
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
