@@ -506,8 +506,13 @@ func (s *scannerServer) serveScanProtobuf(ctx context.Context, resp http.Respons
 	resp.Header().Set("Content-Type", "application/protobuf")
 	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
 	resp.WriteHeader(http.StatusOK)
-	if n, err := resp.Write(respBytes); err != nil {
-		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+	tmpl, err := template.New("resp").Parse(`{{.}}`)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to parse response template"))
+		return
+	}
+	if err := tmpl.Execute(resp, string(respBytes)); err != nil {
+		msg := fmt.Sprintf("failed to write response, 0 of %d bytes written: %s", len(respBytes), err.Error())
 		twerr := twirp.NewError(twirp.Unknown, msg)
 		ctx = callError(ctx, s.hooks, twerr)
 	}
