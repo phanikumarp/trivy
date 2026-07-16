@@ -726,7 +726,7 @@ func (s *cacheServer) servePutArtifactJSON(ctx context.Context, resp http.Respon
 		callResponseSent(ctx, s.hooks)
 		return
 	}
-	if err := tmpl.Execute(resp, string(respBytes)); err != nil {
+	if err := tmpl.Execute(resp, template.HTML(respBytes)); err != nil {
 		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to write response: %s", err.Error()))
 		ctx = callError(ctx, s.hooks, twerr)
 	}
@@ -912,7 +912,7 @@ func (s *cacheServer) servePutBlobJSON(ctx context.Context, resp http.ResponseWr
 		callResponseSent(ctx, s.hooks)
 		return
 	}
-	if err := tmpl.Execute(resp, string(respBytes)); err != nil {
+	if err := tmpl.Execute(resp, template.HTML(respBytes)); err != nil {
 		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to write response: %s", err.Error()))
 		ctx = callError(ctx, s.hooks, twerr)
 	}
