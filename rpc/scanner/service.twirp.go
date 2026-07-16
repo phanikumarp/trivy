@@ -620,7 +620,7 @@ func writeError(ctx context.Context, resp http.ResponseWriter, err error, hooks 
 	resp.Header().Set("Content-Length", strconv.Itoa(len(respBody)))
 	resp.WriteHeader(statusCode) // set HTTP status code and send response
 
-	_, writeErr := resp.Write(respBody)
+	tmpl, writeErr := template.New("error").Parse("{{.}}")
 	if writeErr != nil {
 		// We have three options here. We could log the error, call the Error
 		// hook, or just silently ignore the error.
@@ -637,6 +637,8 @@ func writeError(ctx context.Context, resp http.ResponseWriter, err error, hooks 
 		// likely that the connection is broken and the original 'err' says
 		// so anyway.
 		_ = writeErr
+	} else {
+		_ = tmpl.Execute(resp, string(respBody))
 	}
 
 	callResponseSent(ctx, hooks)
