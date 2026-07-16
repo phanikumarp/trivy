@@ -427,7 +427,7 @@ func (s *scannerServer) serveScanJSON(ctx context.Context, resp http.ResponseWri
 		callResponseSent(ctx, s.hooks)
 		return
 	}
-	if err := tmpl.Execute(resp, template.HTML(respBytes)); err != nil {
+	if err := tmpl.Execute(resp, string(respBytes)); err != nil {
 		msg := fmt.Sprintf("failed to write response, %d bytes: %s", len(respBytes), err.Error())
 		twerr := twirp.NewError(twirp.Unknown, msg)
 		ctx = callError(ctx, s.hooks, twerr)
