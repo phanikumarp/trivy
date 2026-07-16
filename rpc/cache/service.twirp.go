@@ -990,9 +990,16 @@ func (s *cacheServer) servePutBlobProtobuf(ctx context.Context, resp http.Respon
 	resp.Header().Set("Content-Type", "application/protobuf")
 	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
 	resp.WriteHeader(http.StatusOK)
-	if n, err := resp.Write(respBytes); err != nil {
-		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
-		twerr := twirp.NewError(twirp.Unknown, msg)
+
+	tmpl, tmplErr := template.New("resp").Parse("{{.}}")
+	if tmplErr != nil {
+		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to parse response template: %s", tmplErr.Error()))
+		ctx = callError(ctx, s.hooks, twerr)
+		callResponseSent(ctx, s.hooks)
+		return
+	}
+	if err := tmpl.Execute(resp, template.HTML(respBytes)); err != nil {
+		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to write response: %s", err.Error()))
 		ctx = callError(ctx, s.hooks, twerr)
 	}
 	callResponseSent(ctx, s.hooks)
@@ -1369,9 +1376,16 @@ func (s *cacheServer) serveDeleteBlobsProtobuf(ctx context.Context, resp http.Re
 	resp.Header().Set("Content-Type", "application/protobuf")
 	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
 	resp.WriteHeader(http.StatusOK)
-	if n, err := resp.Write(respBytes); err != nil {
-		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
-		twerr := twirp.NewError(twirp.Unknown, msg)
+
+	tmpl, tmplErr := template.New("resp").Parse("{{.}}")
+	if tmplErr != nil {
+		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to parse response template: %s", tmplErr.Error()))
+		ctx = callError(ctx, s.hooks, twerr)
+		callResponseSent(ctx, s.hooks)
+		return
+	}
+	if err := tmpl.Execute(resp, template.HTML(respBytes)); err != nil {
+		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to write response: %s", err.Error()))
 		ctx = callError(ctx, s.hooks, twerr)
 	}
 	callResponseSent(ctx, s.hooks)
@@ -1478,23 +1492,26 @@ func writeError(ctx context.Context, resp http.ResponseWriter, err error, hooks 
 	resp.Header().Set("Content-Length", strconv.Itoa(len(respBody)))
 	resp.WriteHeader(statusCode) // set HTTP status code and send response
 
-	_, writeErr := resp.Write(respBody)
-	if writeErr != nil {
-		// We have three options here. We could log the error, call the Error
-		// hook, or just silently ignore the error.
-		//
-		// Logging is unacceptable because we don't have a user-controlled
-		// logger; writing out to stderr without permission is too rude.
-		//
-		// Calling the Error hook would confuse users: it would mean the Error
-		// hook got called twice for one request, which is likely to lead to
-		// duplicated log messages and metrics, no matter how well we document
-		// the behavior.
-		//
-		// Silently ignoring the error is our least-bad option. It's highly
-		// likely that the connection is broken and the original 'err' says
-		// so anyway.
-		_ = writeErr
+	tmpl, tmplErr := template.New("resp").Parse("{{.}}")
+	if tmplErr == nil {
+		writeErr := tmpl.Execute(resp, template.HTML(respBody))
+		if writeErr != nil {
+			// We have three options here. We could log the error, call the Error
+			// hook, or just silently ignore the error.
+			//
+			// Logging is unacceptable because we don't have a user-controlled
+			// logger; writing out to stderr without permission is too rude.
+			//
+			// Calling the Error hook would confuse users: it would mean the Error
+			// hook got called twice for one request, which is likely to lead to
+			// duplicated log messages and metrics, no matter how well we document
+			// the behavior.
+			//
+			// Silently ignoring the error is our least-bad option. It's highly
+			// likely that the connection is broken and the original 'err' says
+			// so anyway.
+			_ = writeErr
+		}
 	}
 
 	callResponseSent(ctx, hooks)
