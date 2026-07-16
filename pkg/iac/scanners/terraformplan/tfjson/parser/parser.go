@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"crypto/md5" //#nosec
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -229,8 +229,8 @@ func moduleResourceName(rAddress, rType, name string) string {
 
 	parts := strings.Split(rAddress, fmt.Sprintf(".%s.", rType))
 	moduleAddress := strings.TrimSuffix(parts[0], ".data")
-	hash := md5.Sum([]byte(moduleAddress)) // #nosec
-	return fmt.Sprintf("%s_%s", name, hex.EncodeToString(hash[:]))
+	hash := sha256.Sum256([]byte(moduleAddress))
+	return fmt.Sprintf("%s_%s", name, hex.EncodeToString(hash[:16]))
 }
 
 func getConfiguration(address, moduleAddress string, configuration ConfigurationModule) ResourceExpressions {
