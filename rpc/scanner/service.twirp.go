@@ -10,6 +10,7 @@ import io "io"
 import json "encoding/json"
 import strconv "strconv"
 import strings "strings"
+import template "html/template"
 
 import protojson "google.golang.org/protobuf/encoding/protojson"
 import proto "google.golang.org/protobuf/proto"
@@ -419,8 +420,15 @@ func (s *scannerServer) serveScanJSON(ctx context.Context, resp http.ResponseWri
 	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
 	resp.WriteHeader(http.StatusOK)
 
-	if n, err := resp.Write(respBytes); err != nil {
-		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+	tmpl, err := template.New("").Parse("{{.}}")
+	if err != nil {
+		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to parse response template: %s", err.Error()))
+		ctx = callError(ctx, s.hooks, twerr)
+		callResponseSent(ctx, s.hooks)
+		return
+	}
+	if err := tmpl.Execute(resp, template.HTML(respBytes)); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d bytes: %s", len(respBytes), err.Error())
 		twerr := twirp.NewError(twirp.Unknown, msg)
 		ctx = callError(ctx, s.hooks, twerr)
 	}
