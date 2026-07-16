@@ -361,8 +361,11 @@ func combineDocs(notAffected map[UniqueKey][]vex.Statement, affected map[UniqueK
 // run by runCommandWithTimeout. Using absolute paths avoids relying on a
 // potentially attacker-controlled PATH environment variable.
 var allowedCommandPaths = map[string]struct{}{
-	"/usr/bin/git": {},
-	"/usr/local/bin/git": {},
+	"/usr/bin/git":            {}, // Linux system git
+	"/usr/local/bin/git":      {}, // Linux local install / macOS Homebrew (Intel)
+	"/opt/homebrew/bin/git":   {}, // macOS Homebrew (Apple Silicon)
+	"/opt/local/bin/git":      {}, // macOS MacPorts
+	"/usr/local/git/bin/git":  {}, // macOS Xcode CLI tools (older path)
 }
 
 // safeArgPattern restricts each argument to characters that have no special
@@ -391,7 +394,10 @@ func runCommandWithTimeout(ctx context.Context, timeout time.Duration, name stri
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, resolvedPath, args...)
+	// resolvedPath has been validated against allowedCommandPaths (an explicit allowlist of
+	// trusted absolute binary paths) and every element of args has been checked against
+	// safeArgPattern, so this call is not subject to command or argument injection.
+	cmd := exec.CommandContext(ctx, resolvedPath, args...) //nolint:gosec // G204: input is allowlist-validated above
 	log.Info("Executing command", log.String("cmd", cmd.String()))
 
 	output, err := cmd.CombinedOutput()
