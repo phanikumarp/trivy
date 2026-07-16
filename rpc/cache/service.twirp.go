@@ -1277,9 +1277,15 @@ func (s *cacheServer) serveDeleteBlobsJSON(ctx context.Context, resp http.Respon
 	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
 	resp.WriteHeader(http.StatusOK)
 
-	if n, err := resp.Write(respBytes); err != nil {
-		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
-		twerr := twirp.NewError(twirp.Unknown, msg)
+	tmpl, tmplErr := template.New("resp").Parse("{{.}}")
+	if tmplErr != nil {
+		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to parse response template: %s", tmplErr.Error()))
+		ctx = callError(ctx, s.hooks, twerr)
+		callResponseSent(ctx, s.hooks)
+		return
+	}
+	if err := tmpl.Execute(resp, template.HTML(respBytes)); err != nil {
+		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to write response: %s", err.Error()))
 		ctx = callError(ctx, s.hooks, twerr)
 	}
 	callResponseSent(ctx, s.hooks)
