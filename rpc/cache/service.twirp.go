@@ -719,9 +719,15 @@ func (s *cacheServer) servePutArtifactJSON(ctx context.Context, resp http.Respon
 	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
 	resp.WriteHeader(http.StatusOK)
 
-	if n, err := resp.Write(respBytes); err != nil {
-		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
-		twerr := twirp.NewError(twirp.Unknown, msg)
+	tmpl, err := template.New("resp").Parse("{{.}}")
+	if err != nil {
+		twerr := wrapInternal(err, "failed to parse response template")
+		ctx = callError(ctx, s.hooks, twerr)
+		callResponseSent(ctx, s.hooks)
+		return
+	}
+	if err := tmpl.Execute(resp, string(respBytes)); err != nil {
+		twerr := twirp.NewError(twirp.Unknown, fmt.Sprintf("failed to write response: %s", err.Error()))
 		ctx = callError(ctx, s.hooks, twerr)
 	}
 	callResponseSent(ctx, s.hooks)
